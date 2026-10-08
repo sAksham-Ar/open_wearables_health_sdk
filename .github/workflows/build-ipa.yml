@@ -22,11 +22,21 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install Flutter & Dart dependencies
+      - name: Configure Flutter
+        run: |
+          flutter config --no-analytics
+          flutter config --no-enable-swift-package-manager
+
+      - name: Install dependencies
         run: |
           flutter pub get
           cd example
           flutter pub get
+
+      - name: Install CocoaPods
+        run: |
+          cd example/ios
+          pod install --repo-update
 
       - name: Build iOS App without code signing
         run: |
