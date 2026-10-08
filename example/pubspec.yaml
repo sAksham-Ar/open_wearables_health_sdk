@@ -15,8 +15,6 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   flutter:
-  config:
-    enable-swift-package-manager: false
     sdk: flutter
   sentry_flutter: ^9.16.0
   open_wearables_health_sdk:
@@ -51,8 +49,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-  config:
-    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
