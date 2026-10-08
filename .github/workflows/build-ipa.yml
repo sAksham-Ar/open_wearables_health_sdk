@@ -33,6 +33,17 @@ jobs:
           cd example
           flutter pub get
 
+      - name: Select Xcode 16 if present
+        run: |
+          if [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app
+          fi
+          xcodebuild -version
+
       - name: Install CocoaPods
         run: |
           cd example/ios
