@@ -35,6 +35,8 @@
 	<string>This app syncs your health data to your account.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>This app needs to update your health data.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Open Wearables needs location access to read workout routes and elevation.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIBackgroundModes</key>

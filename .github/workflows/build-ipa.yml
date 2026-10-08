@@ -1,0 +1,70 @@
+name: Build iOS IPA (SideStore)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ipa:
+    name: Build Open Wearables IPA
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter & Dart dependencies
+        run: |
+          flutter pub get
+          cd example
+          flutter pub get
+
+      - name: Build iOS App without code signing
+        run: |
+          cd example
+          flutter build ios --release --no-codesign
+
+      - name: Create SideStore IPA Package
+        run: |
+          mkdir -p Payload
+          cp -r example/build/ios/iphoneos/Runner.app Payload/
+          zip -qr OpenWearables.ipa Payload
+          ls -lh OpenWearables.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenWearables-SideStore-IPA
+          path: OpenWearables.ipa
+          retention-days: 14
+
+      - name: Create GitHub Release with IPA
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v0.1.0-route-${{ github.run_number }}"
+          name: "Open Wearables v0.1.0 (Route & Elevation Patched)"
+          body: |
+            ### Open Wearables iOS IPA (Patched with Issue #72)
+
+            Built specifically for wireless installation via **SideStore**.
+            Includes `HKWorkoutRoute` GPS and per-split elevation support (`altitudeM`).
+
+            #### How to Install on your iPhone:
+            1. Open Safari on your iPhone and download `OpenWearables.ipa` below.
+            2. In Safari, tap the Downloads button -> tap `OpenWearables.ipa`.
+            3. Tap the Share button -> select **SideStore** (or open SideStore, tap `+` in My Apps, and select `OpenWearables.ipa`).
+            4. SideStore will sign the app with your Apple ID and install it directly over Wi-Fi.
+          files: OpenWearables.ipa
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
