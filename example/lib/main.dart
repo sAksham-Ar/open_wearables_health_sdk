@@ -532,6 +532,41 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _forceResync() async {
+    setState(() => _isLoading = true);
+    try {
+      _setStatus('Resetting sync state...');
+      if (_isSyncing) {
+        await OpenWearablesHealthSdk.stopBackgroundSync();
+        setState(() => _isSyncing = false);
+      }
+      await OpenWearablesHealthSdk.resetAnchors();
+      await _setHistoricalSyncInProgress(false, 0);
+
+      final label = _syncDaysBack != null ? 'last $_syncDaysBack days' : 'full history';
+      final started = await OpenWearablesHealthSdk.startBackgroundSync(syncDaysBack: _syncDaysBack);
+      setState(() => _isSyncing = started);
+      _setStatus(started ? 'Force sync started ($label)' : 'Could not start sync');
+      if (started) _refreshHistoricalSyncStatus();
+      if (!started) {
+        Sentry.captureEvent(
+          SentryEvent(
+            message: SentryMessage('Background sync failed to start on force resync'),
+            level: SentryLevel.warning,
+            tags: {'syncDaysBack': '${_syncDaysBack ?? "full"}'},
+          ),
+        );
+      }
+    } on NotSignedInException {
+      _setStatus('Sign in first');
+    } catch (e, stackTrace) {
+      _setStatus('Error: $e');
+      Sentry.captureException(e, stackTrace: stackTrace, hint: Hint.withMap({'operation': 'forceResync'}));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1072,6 +1107,14 @@ class _HomePageState extends State<HomePage> {
                   ? 'Background sync is active'
                   : 'Sync ${_syncDaysBack != null ? 'last $_syncDaysBack days' : 'full history'}',
               onTap: _isSyncing ? _stopBackgroundSync : _startBackgroundSync,
+            ),
+            _buildDivider(),
+            _buildActionTile(
+              icon: CupertinoIcons.arrow_clockwise,
+              iconColor: OWColors.accentIndigo,
+              title: 'Force Resync',
+              subtitle: 'Reset sync anchors and re-export ${_syncDaysBack != null ? 'last $_syncDaysBack days' : 'full history'}',
+              onTap: _forceResync,
             ),
           ],
           _buildDivider(),
