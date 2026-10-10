@@ -58,6 +58,7 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r example/build/ios/iphoneos/Runner.app Payload/
+          codesign --force --deep --sign - --entitlements example/ios/Runner/Runner.entitlements Payload/Runner.app
           zip -qr OpenWearables.ipa Payload
           ls -lh OpenWearables.ipa
 
