@@ -9,7 +9,23 @@ permissions:
   contents: write
 
 jobs:
+  native-tests:
+    name: Test summary transport
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: sAksham-Ar/open_wearables_ios_sdk
+          ref: 33c515bf56d03b9d1ce37bf67d2cb9fcd86006de
+      - name: Run native SDK tests
+        run: |
+          xcodebuild -scheme OpenWearablesHealthSDK -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' test CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/native-tests.log" 2>&1 || {
+            tail -150 "$RUNNER_TEMP/native-tests.log"
+            exit 1
+          }
+
   build-ipa:
+    needs: native-tests
     name: Build Open Wearables IPA
     runs-on: macos-14
     steps:
@@ -32,6 +48,12 @@ jobs:
           flutter pub get
           cd example
           flutter pub get
+
+      - name: Check summary pages
+        run: |
+          cd example
+          flutter analyze
+          flutter test test/summary_test.dart
 
       - name: Select Xcode 16 if present
         run: |
@@ -70,6 +92,7 @@ jobs:
           retention-days: 14
 
       - name: Create GitHub Release with IPA
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v0.1.0-route-${{ github.run_number }}"

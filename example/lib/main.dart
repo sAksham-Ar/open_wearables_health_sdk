@@ -10,6 +10,8 @@ import 'package:open_wearables_health_sdk/open_wearables_health_sdk.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'summaries/summary_page.dart';
+
 // Open Wearables design tokens
 class OWColors {
   static const background = Color(0xFF09090B); // zinc-950
@@ -269,7 +271,6 @@ class _HomePageState extends State<HomePage> {
           (credentials['accessToken'] != null && (credentials['accessToken'] as String).isNotEmpty) ||
           (credentials['apiKey'] != null && (credentials['apiKey'] as String).isNotEmpty);
       final hasHost = credentials['host'] != null && (credentials['host'] as String).isNotEmpty;
-      final wasSyncActive = credentials['isSyncActive'] == true;
 
       if (hasHost) {
         setState(() {
@@ -283,7 +284,7 @@ class _HomePageState extends State<HomePage> {
         setState(() => _selectedProviderId = storedProvider);
       }
 
-      if (hasUserId && hasAccessToken && hasHost && wasSyncActive) {
+      if (hasUserId && hasAccessToken && hasHost) {
         await OpenWearablesHealthSdk.configure(host: credentials['host'] as String);
         _checkStatus();
         _setStatus('Session restored');
@@ -613,6 +614,20 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 16),
                     ],
                     if (_isAuthorized && !_isSyncing) ...[_buildSyncRangeSection()],
+                    if (Platform.isIOS) ...[
+                      Card(
+                        child: ListTile(
+                          leading: const Icon(CupertinoIcons.chart_bar_alt_fill, color: OWColors.accentIndigo),
+                          title: const Text('Your health summary'),
+                          subtitle: const Text('Activity, sleep, workouts and vitals'),
+                          trailing: const Icon(CupertinoIcons.chevron_right, size: 18),
+                          onTap: () => Navigator.of(context).push(
+                            CupertinoPageRoute(builder: (_) => const SummaryPage()),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _buildActionsSection(),
                   ],
 
