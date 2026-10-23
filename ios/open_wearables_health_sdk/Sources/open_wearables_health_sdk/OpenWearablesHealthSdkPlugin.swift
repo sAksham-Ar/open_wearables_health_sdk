@@ -181,6 +181,24 @@ public class OpenWearablesHealthSdkPlugin: NSObject, FlutterPlugin, FlutterStrea
             }
             result(nil)
 
+        case "fetchSummary":
+            guard let args = call.arguments as? [String: Any],
+                  let section = args["section"] as? String else {
+                result(FlutterError(code: "bad_args", message: "Missing summary section", details: nil))
+                return
+            }
+            sdk.fetchSummary(section: section, query: args["query"] as? [String: String] ?? [:]) { response in
+                DispatchQueue.main.async {
+                    switch response {
+                    case .success(let data):
+                        result(String(data: data, encoding: .utf8))
+                    case .failure(let error):
+                        result(FlutterError(code: String((error as NSError).code),
+                            message: error.localizedDescription, details: nil))
+                    }
+                }
+            }
+
         case "setSyncNotification":
             result(nil)
 
