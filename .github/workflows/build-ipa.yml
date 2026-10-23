@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: sAksham-Ar/open_wearables_ios_sdk
-          ref: 33c515b
+          ref: 33c515bf56d03b9d1ce37bf67d2cb9fcd86006de
       - name: Run native SDK tests
         run: |
           xcodebuild -scheme OpenWearablesHealthSDK -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' test CODE_SIGNING_ALLOWED=NO > "$RUNNER_TEMP/native-tests.log" 2>&1 || {

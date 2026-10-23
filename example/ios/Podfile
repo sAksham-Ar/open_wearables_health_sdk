@@ -29,7 +29,7 @@ flutter_ios_podfile_setup
 
 target 'Runner' do
   use_frameworks!
-  pod 'OpenWearablesHealthSDK', :git => 'https://github.com/sAksham-Ar/open_wearables_ios_sdk.git', :commit => '33c515b'
+  pod 'OpenWearablesHealthSDK', :git => 'https://github.com/sAksham-Ar/open_wearables_ios_sdk.git', :commit => '33c515bf56d03b9d1ce37bf67d2cb9fcd86006de'
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
