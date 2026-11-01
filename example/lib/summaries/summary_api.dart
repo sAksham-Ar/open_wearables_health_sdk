@@ -5,6 +5,8 @@ import 'package:open_wearables_health_sdk/open_wearables_health_sdk.dart';
 class SummaryApi {
   const SummaryApi();
 
+  Future<void> cancel() => OpenWearablesHealthSdk.cancelSummaryRead();
+
   Future<Map<String, dynamic>?> fetch(
     String section,
     Map<String, String> query,

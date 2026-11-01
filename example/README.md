@@ -15,3 +15,10 @@ Run `flutter analyze` and `flutter test test/summary_test.dart` in this director
 The build workflow runs native SDK tests on an iOS simulator before creating the
 IPA. Workflow dispatch on a feature branch uploads a build artifact without
 publishing a release.
+
+Summary reads have a separate connection pool from uploads and return a cancellable
+operation. Switching tabs or leaving the screen cancels the obsolete read. The
+screen retains up to twelve loaded pages in memory for its lifetime; pages less
+than a minute old are reused immediately. Pull-to-refresh always requests fresh
+data, keeping existing values visible if the network is slow or unavailable.
+No health summary cache is written to disk.

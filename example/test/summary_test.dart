@@ -11,6 +11,12 @@ class FakeApi extends SummaryApi {
   final Future<Map<String, dynamic>?> Function(String, Map<String, String>)
   handler;
   final List<(String, Map<String, String>)> requests = [];
+  int cancellations = 0;
+
+  @override
+  Future<void> cancel() async {
+    cancellations++;
+  }
 
   @override
   Future<Map<String, dynamic>?> fetch(
@@ -165,5 +171,87 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No sleep data yet'), findsOneWidget);
     expect(find.text('99999'), findsNothing);
+  });
+  testWidgets('returning to a loaded tab reuses its data without a request', (
+    tester,
+  ) async {
+    final api = FakeApi(
+      (section, _) async => page(
+        section == 'activity'
+            ? [
+                {'date': '2026-10-23', 'steps': 8432},
+              ]
+            : [],
+      ),
+    );
+    await mount(tester, api);
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Activity'));
+    await tester.pumpAndSettle();
+    expect(find.text('8432'), findsOneWidget);
+    expect(api.requests.length, 2);
+    expect(api.cancellations, 3);
+  });
+
+  testWidgets(
+    'refresh keeps loaded data visible and preserves it on network failure',
+    (tester) async {
+      final refreshing = Completer<Map<String, dynamic>?>();
+      var calls = 0;
+      final api = FakeApi(
+        (_, _) => ++calls == 1
+            ? Future.value(
+                page([
+                  {'date': '2026-10-23', 'steps': 8432},
+                ]),
+              )
+            : refreshing.future,
+      );
+      await mount(tester, api);
+      final refresh = tester
+          .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+          .onRefresh();
+      await tester.pump();
+      expect(find.text('8432'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsOneWidget);
+      refreshing.completeError(Exception('offline'));
+      await refresh;
+      await tester.pumpAndSettle();
+      expect(find.text('8432'), findsOneWidget);
+      expect(find.textContaining('Could not refresh'), findsOneWidget);
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'explicit refresh replaces cached rows instead of appending them',
+    (tester) async {
+      var calls = 0;
+      final api = FakeApi(
+        (_, _) async => page([
+          {'date': '2026-10-23', 'steps': ++calls == 1 ? 8432 : 9000},
+        ]),
+      );
+      await mount(tester, api);
+      await tester
+          .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+          .onRefresh();
+      await tester.pumpAndSettle();
+      expect(find.text('9000'), findsOneWidget);
+      expect(find.text('17432'), findsNothing);
+      expect(api.requests.length, 2);
+    },
+  );
+
+  testWidgets('leaving the summary cancels its pending native read', (
+    tester,
+  ) async {
+    final api = FakeApi((_, _) async => page([]));
+    await mount(tester, api);
+    final before = api.cancellations;
+    await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    await tester.pump();
+    expect(api.cancellations, before + 1);
   });
 }

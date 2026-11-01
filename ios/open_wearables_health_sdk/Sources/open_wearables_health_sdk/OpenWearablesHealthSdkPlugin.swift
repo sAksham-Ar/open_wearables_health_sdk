@@ -8,6 +8,7 @@ import OpenWearablesHealthSDK
 public class OpenWearablesHealthSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
     private let sdk = OpenWearablesHealthSDK.shared
+    private var summaryRead: SummaryReadTask?
     
     // Log event sink
     private var logEventSink: FlutterEventSink?
@@ -187,7 +188,8 @@ public class OpenWearablesHealthSdkPlugin: NSObject, FlutterPlugin, FlutterStrea
                 result(FlutterError(code: "bad_args", message: "Missing summary section", details: nil))
                 return
             }
-            sdk.fetchSummary(section: section, query: args["query"] as? [String: String] ?? [:]) { response in
+            summaryRead?.cancel()
+            summaryRead = sdk.fetchSummary(section: section, query: args["query"] as? [String: String] ?? [:]) { response in
                 DispatchQueue.main.async {
                     switch response {
                     case .success(let data):
@@ -198,6 +200,11 @@ public class OpenWearablesHealthSdkPlugin: NSObject, FlutterPlugin, FlutterStrea
                     }
                 }
             }
+
+        case "cancelSummaryRead":
+            summaryRead?.cancel()
+            summaryRead = nil
+            result(nil)
 
         case "setSyncNotification":
             result(nil)

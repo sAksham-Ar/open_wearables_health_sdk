@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,6 +25,15 @@ class SummaryPage extends StatefulWidget {
   State<SummaryPage> createState() => _SummaryPageState();
 }
 
+class _SummarySnapshot {
+  _SummarySnapshot(this.response, this.rows, this.cursor)
+    : loadedAt = DateTime.now();
+  final Map<String, dynamic>? response;
+  final List<Map<String, dynamic>> rows;
+  final String? cursor;
+  final DateTime loadedAt;
+}
+
 class _SummaryPageState extends State<SummaryPage> {
   String _section = 'activity';
   int _days = 7;
@@ -34,6 +45,20 @@ class _SummaryPageState extends State<SummaryPage> {
   bool _loading = true;
   bool _loadingMore = false;
   int _generation = 0;
+  bool _refreshing = false;
+  bool _retryMore = false;
+  final Map<String, _SummarySnapshot> _cache = {};
+
+  String get _cacheKey =>
+      _section == 'vitals' ? 'vitals' : '$_section/$_days/${dayKey(_end)}';
+
+  @override
+  void dispose() {
+    _generation++;
+    // The platform channel may already be closing when the app is disposed.
+    unawaited(widget.api.cancel().catchError((Object _) {}));
+    super.dispose();
+  }
 
   DateTime get _today {
     final now = widget.today ?? DateTime.now();
@@ -49,32 +74,40 @@ class _SummaryPageState extends State<SummaryPage> {
     _load();
   }
 
-  Future<void> _load({bool more = false}) async {
+  Future<void> _load({bool more = false, bool force = false}) async {
     if (more && (_loadingMore || _cursor == null)) return;
     final generation = ++_generation;
+    final section = _section;
+    final key = _cacheKey;
+    final cached = _cache[key];
+    final fresh =
+        cached != null &&
+        DateTime.now().difference(cached.loadedAt) < const Duration(minutes: 1);
     final requestedCursor = more ? _cursor : null;
+    final query = section == 'vitals'
+        ? <String, String>{}
+        : {
+            'start_date': dayKey(_start),
+            'end_date': dayKey(_end),
+            'limit': '100',
+            if (requestedCursor != null) 'cursor': requestedCursor,
+          };
     setState(() {
       _error = null;
       _loadingMore = more;
-      _loading = !more;
+      _loading = !more && cached == null;
+      _refreshing = !more && cached != null && (force || !fresh);
       if (!more) {
-        _response = null;
-        _rows = [];
-        _cursor = null;
+        _response = cached?.response;
+        _rows = cached?.rows ?? [];
+        _cursor = cached?.cursor;
       }
     });
     try {
-      final response = await widget.api.fetch(
-        _section,
-        _section == 'vitals'
-            ? {}
-            : {
-                'start_date': dayKey(_start),
-                'end_date': dayKey(_end),
-                'limit': '100',
-                if (requestedCursor != null) 'cursor': requestedCursor,
-              },
-      );
+      await widget.api.cancel();
+      if (!mounted || generation != _generation) return;
+      if (!more && fresh && !force) return;
+      final response = await widget.api.fetch(section, query);
       if (!mounted || generation != _generation) return;
       final pagination = object(response?['pagination']);
       final next = pagination['next_cursor'] as String?;
@@ -84,19 +117,29 @@ class _SummaryPageState extends State<SummaryPage> {
       }
       setState(() {
         _response = response;
-        _rows = [..._rows, ...summaryRows(response)];
+        _rows = [
+          ...(more ? _rows : <Map<String, dynamic>>[]),
+          ...summaryRows(response),
+        ];
         _cursor = pagination['has_more'] == true ? next : null;
         _loading = false;
         _loadingMore = false;
+        _refreshing = false;
+        if (_cache.length >= 12 && !_cache.containsKey(key)) {
+          _cache.remove(_cache.keys.first);
+        }
+        _cache[key] = _SummarySnapshot(_response, _rows, _cursor);
       });
     } catch (error) {
       if (!mounted || generation != _generation) return;
       setState(() {
         _loading = false;
         _loadingMore = false;
+        _refreshing = false;
+        _retryMore = more;
         _error = error is PlatformException && error.code == '401'
             ? 'Your session expired. Return to sync and reconnect your account.'
-            : 'Could not load your summary. Check your connection and try again.';
+            : 'Could not refresh your summary. Check your connection and try again.';
       });
     }
   }
@@ -121,7 +164,7 @@ class _SummaryPageState extends State<SummaryPage> {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _load,
+          onRefresh: () => _load(force: true),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -187,6 +230,12 @@ class _SummaryPageState extends State<SummaryPage> {
                   style: TextStyle(color: _muted),
                 ),
               const SizedBox(height: 16),
+              if (_refreshing) ...[
+                const LinearProgressIndicator(
+                  semanticsLabel: 'Refreshing summary',
+                ),
+                const SizedBox(height: 12),
+              ],
               if (_loading)
                 const Padding(
                   padding: EdgeInsets.all(48),
@@ -200,14 +249,13 @@ class _SummaryPageState extends State<SummaryPage> {
                       children: [
                         Text(_error!, style: const TextStyle(color: _muted)),
                         TextButton(
-                          onPressed: () =>
-                              _load(more: _rows.isNotEmpty && _cursor != null),
+                          onPressed: () => _load(more: _retryMore, force: true),
                           child: const Text('Try again'),
                         ),
                       ],
                     ),
                   ),
-                if (_error == null || _rows.isNotEmpty) ...[
+                if (_error == null || _response != null) ...[
                   if ((_section == 'vitals' && _response == null) ||
                       (_section != 'vitals' && _rows.isEmpty))
                     _empty()

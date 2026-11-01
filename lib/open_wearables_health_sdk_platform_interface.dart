@@ -79,6 +79,11 @@ abstract class OpenWearablesHealthSdkPlatform extends PlatformInterface {
     throw UnsupportedError('Summary reads are supported on iOS only.');
   }
 
+  /// Cancels an interactive summary read without interrupting sync or shared refresh.
+  Future<void> cancelSummaryRead() {
+    throw UnsupportedError('Summary reads are supported on iOS only.');
+  }
+
   // MARK: - Authorization
 
   /// Requests authorization from HealthKit/Health Connect.

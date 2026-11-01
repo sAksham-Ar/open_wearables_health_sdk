@@ -107,6 +107,11 @@ class MethodChannelOpenWearablesHealthSdk extends OpenWearablesHealthSdkPlatform
   }
 
   @override
+  Future<void> cancelSummaryRead() async {
+    await _channel.invokeMethod<void>('cancelSummaryRead');
+  }
+
+  @override
   Future<bool> requestAuthorization({required List<String> types}) async {
     final result = await _channel.invokeMethod<bool>('requestAuthorization', {'types': types});
     return result == true;

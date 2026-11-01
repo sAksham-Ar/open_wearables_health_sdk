@@ -340,6 +340,9 @@ class OpenWearablesHealthSdk {
     return _platform.fetchSummary(section: section, query: query);
   }
 
+  /// Cancels the interactive read without cancelling background uploads.
+  static Future<void> cancelSummaryRead() => _platform.cancelSummaryRead();
+
   /// Returns stored credentials for debugging/display purposes.
   ///
   /// Returns a map with keys: userId, accessToken, refreshToken, apiKey,
