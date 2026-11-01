@@ -334,6 +334,15 @@ class OpenWearablesHealthSdk {
     await _platform.resetAnchors();
   }
 
+  /// Reads the paired user's summary through the native iOS authenticated transport.
+  /// Token refresh is shared with background sync; tokens never cross into the UI.
+  static Future<String> fetchSummary({required String section, Map<String, String> query = const {}}) {
+    return _platform.fetchSummary(section: section, query: query);
+  }
+
+  /// Cancels the interactive read without cancelling background uploads.
+  static Future<void> cancelSummaryRead() => _platform.cancelSummaryRead();
+
   /// Returns stored credentials for debugging/display purposes.
   ///
   /// Returns a map with keys: userId, accessToken, refreshToken, apiKey,

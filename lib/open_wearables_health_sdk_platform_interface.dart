@@ -74,6 +74,16 @@ abstract class OpenWearablesHealthSdkPlatform extends PlatformInterface {
     throw UnimplementedError('restoreSession() has not been implemented.');
   }
 
+  /// Reads a summary for the signed-in user. Currently supported on iOS.
+  Future<String> fetchSummary({required String section, Map<String, String> query = const {}}) {
+    throw UnsupportedError('Summary reads are supported on iOS only.');
+  }
+
+  /// Cancels an interactive summary read without interrupting sync or shared refresh.
+  Future<void> cancelSummaryRead() {
+    throw UnsupportedError('Summary reads are supported on iOS only.');
+  }
+
   // MARK: - Authorization
 
   /// Requests authorization from HealthKit/Health Connect.

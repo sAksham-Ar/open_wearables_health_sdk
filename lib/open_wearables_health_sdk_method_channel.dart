@@ -100,6 +100,18 @@ class MethodChannelOpenWearablesHealthSdk extends OpenWearablesHealthSdkPlatform
   }
 
   @override
+  Future<String> fetchSummary({required String section, Map<String, String> query = const {}}) async {
+    final response = await _channel.invokeMethod<String>('fetchSummary', {'section': section, 'query': query});
+    if (response == null) throw StateError('The summary response was empty.');
+    return response;
+  }
+
+  @override
+  Future<void> cancelSummaryRead() async {
+    await _channel.invokeMethod<void>('cancelSummaryRead');
+  }
+
+  @override
   Future<bool> requestAuthorization({required List<String> types}) async {
     final result = await _channel.invokeMethod<bool>('requestAuthorization', {'types': types});
     return result == true;
